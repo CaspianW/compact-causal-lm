@@ -1,17 +1,19 @@
-"""Run: python -m unittest discover -s tests -v (CPU; no dataset download)."""
-import unittest
-import torch
-from common import windows
-from student import build_model
+"""运行方式：python -m unittest discover -s tests -v（使用 CPU，不需要下载数据）。"""
+import unittest  # Python 自带的单元测试框架
+import torch  # 创建测试张量和计算梯度
+from common import windows  # 测试评估窗口切分
+from student import build_model  # 创建待测试的学生模型
 
 
 class ContractTests(unittest.TestCase):
     def setUp(self):
+        # 使用小模型加快测试；接口要求与正式模型相同。
         torch.set_num_threads(2)
         torch.manual_seed(17)
         self.model = build_model(dict(vocab=2048,width=32,heads=4,depth=2,context=256)).eval()
 
     def test_future_inputs_cannot_change_earlier_predictions(self):
+        # 修改未来 token 不应影响之前位置的预测。
         x = torch.randint(0,2048,(2,12))
         changed = x.clone(); changed[:,7:] = (changed[:,7:]+19)%2048
         with torch.no_grad():
@@ -19,6 +21,7 @@ class ContractTests(unittest.TestCase):
         torch.testing.assert_close(a[:,:7],b[:,:7],atol=1e-6,rtol=1e-6)
 
     def test_probabilities_are_normalized_and_examples_independent(self):
+        # 检查概率归一化和 batch 样本独立性。
         x = torch.randint(0,2048,(2,12))
         with torch.no_grad():
             together = self.model.predict_log_probs(x)
@@ -28,6 +31,7 @@ class ContractTests(unittest.TestCase):
         torch.testing.assert_close(together[:1],alone,atol=1e-5,rtol=1e-5)
 
     def test_state_resets_between_windows(self):
+        # 检查不同评估窗口之间没有残留状态。
         x = torch.randint(0,2048,(1,12))
         with torch.no_grad():
             first = self.model.predict_log_probs(x)
@@ -36,6 +40,7 @@ class ContractTests(unittest.TestCase):
         torch.testing.assert_close(first,again,atol=1e-6,rtol=1e-6)
 
     def test_shifted_loss_produces_gradients(self):
+        # 检查 next-token loss 能产生有效梯度。
         x = torch.randint(0,2048,(2,13))
         loss = torch.nn.functional.cross_entropy(self.model(x[:,:-1]).flatten(0,1),x[:,1:].flatten())
         loss.backward()
@@ -46,6 +51,7 @@ class ContractTests(unittest.TestCase):
         self.assertGreater(sum(g.abs().sum().item() for g in gradients),0)
 
     def test_every_target_is_counted_once_including_last_short_window(self):
+        # 检查最后一个短窗口也会被计分。
         tokens = torch.arange(2*256+7)
         targets = torch.cat([y[y!=-100] for _,y in windows(tokens,batch_size=2)])
         torch.testing.assert_close(targets,tokens[1:])

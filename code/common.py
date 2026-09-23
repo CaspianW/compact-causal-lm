@@ -1,9 +1,9 @@
-import hashlib
-import importlib
-import json
-from pathlib import Path
-import torch
-from tokenizers import Tokenizer
+import hashlib  # 计算文件哈希，检查数据是否被修改
+import importlib  # 根据参数动态加载 model 或 student
+import json  # 读取配置和数据清单
+from pathlib import Path  # 处理文件路径
+import torch  # 张量、设备和随机数
+from tokenizers import Tokenizer  # 加载 BPE tokenizer
 
 ROOT = Path(__file__).resolve().parent
 PROTOCOL = '7506-mp1-wt2-v2'

@@ -1,12 +1,12 @@
 """Fixed scorer. Student models receive inputs, never reference next-token targets."""
-import argparse
-import json
-import math
-from pathlib import Path
-import time
-import numpy as np
-import torch
-from common import PROTOCOL, ROOT, autocast, device_metrics, load_data, make_model, setup, sha, windows
+import argparse  # 解析评估命令
+import json  # 保存评估结果
+import math  # 计算 BPB 和 perplexity
+from pathlib import Path  # 处理 checkpoint 和输出路径
+import time  # 统计评估耗时
+import numpy as np  # 保存每个窗口的损失
+import torch  # 加载模型和执行推理
+from common import PROTOCOL, ROOT, autocast, device_metrics, load_data, make_model, setup, sha, windows  # 公共工具
 
 
 @torch.no_grad()
