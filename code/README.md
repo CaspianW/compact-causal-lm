@@ -143,6 +143,8 @@ WikiText-2 was introduced by Stephen Merity, Caiming Xiong, James Bradbury and R
 
 The supplied `wikitext-2-raw-v1` splits preserve revision `b08601e04326c79dfdd32d625aee71d232d685c3`. Rows are joined with newlines and encoded as UTF-8; the tokenizer is fitted only to training text. Dataset hashes are in `data/manifest.json`. These dataset notices do not assign a new license to the surrounding classroom code.
 
-## 7. Assistance and reused work
+## 7. Reused work and AI assistance
 
-The model uses RoPE and SwiGLU as covered in the course lectures. The optional `muon.py` experiment adapts the Newton-Schulz update from [Keller Jordan's Muon implementation](https://github.com/KellerJordan/Muon); Muon is not used in the submitted checkpoint. AI assistance was used to implement and debug model variants, organize experiments, and draft documentation. The submitted results were checked with the supplied evaluator and correctness tests.
+The course starter provided the baseline model, data, tokenizer, loader, scorer, and contract tests. These fixed files remain unchanged. The submitted model lives in `student.py`, while `train.py` contains the added configuration and validation-checkpoint options. `course_models.py` holds exploratory architecture tests. RoPE, SwiGLU, and the other screened architecture ideas were covered in the course lectures. The optional `muon.py` experiment adapts the Newton-Schulz update from [Keller Jordan's Muon implementation](https://github.com/KellerJordan/Muon); the submitted checkpoint uses AdamW.
+
+Codex assisted with implementing and debugging model variants and training options, setting up and comparing CPU and GPU experiments, checking the final score and resource use, and drafting the README and report. The final checkpoint was chosen by validation BPB and evaluated with the supplied scorer. The same disclosure appears in the [repository README](../README.md).
