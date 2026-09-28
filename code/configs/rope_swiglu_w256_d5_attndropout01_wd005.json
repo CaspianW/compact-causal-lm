@@ -1,0 +1,13 @@
+{
+  "vocab": 2048,
+  "width": 256,
+  "heads": 4,
+  "depth": 5,
+  "context": 256,
+  "ffn": "swiglu",
+  "norm": "layernorm",
+  "position": "rope",
+  "dropout": 0.1,
+  "attention_dropout": 0.1,
+  "weight_decay": 0.05
+}

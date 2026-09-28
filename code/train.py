@@ -8,6 +8,7 @@ import torch  # 训练张量、随机采样和优化器
 from torch.nn import functional as F  # 交叉熵损失
 from common import PROTOCOL, ROOT, autocast, device_metrics, load_data, make_model, setup, sha  # 公共工具
 from evaluate import score  # 训练过程中计算 validation 分数
+from muon import Muon
 
 
 def main():
@@ -27,11 +28,15 @@ def main():
     p.add_argument('--batch-size', type=int, default=32)
     p.add_argument('--eval-every', type=int, default=0,
                    help='Optional validation-curve interval; 0 evaluates only after training.')
+    p.add_argument('--save-best', action='store_true',
+                   help='Save the checkpoint with the lowest validation BPB at each evaluation.')
     args = p.parse_args()
 
     # 防止新实验覆盖旧结果。
     if args.steps < 1 or args.batch_size < 1:
         p.error('Batch size and step count must be positive.')
+    if args.save_best and args.eval_every <= 0:
+        p.error('--save-best requires a positive --eval-every.')
     if args.run_dir.exists() and any(args.run_dir.iterdir()):
         p.error('Run directory already contains results. Use a new --run-dir.')
 
@@ -51,7 +56,24 @@ def main():
     args.run_dir.mkdir(parents=True, exist_ok=True)
 
     # 使用 AdamW 更新模型参数。
-    optimizer = torch.optim.AdamW(model.parameters(), lr=.001, weight_decay=.1)
+    base_lr = float(config.get('learning_rate', .001))
+    weight_decay = float(config.get('weight_decay', .1))
+    optimizer_name = config.get('optimizer', 'adamw')
+    if optimizer_name == 'muon':
+        embedding_ids = {id(model.token.weight)}
+        matrix_params = [p for p in model.parameters() if p.ndim >= 2 and id(p) not in embedding_ids]
+        matrix_ids = {id(p) for p in matrix_params}
+        adamw_params = [p for p in model.parameters() if id(p) not in matrix_ids]
+        muon_lr = float(config.get('muon_lr', .02))
+        muon_optimizer = Muon(matrix_params, lr=muon_lr,
+                              weight_decay=float(config.get('muon_weight_decay', .01)))
+        adamw_optimizer = torch.optim.AdamW(adamw_params, lr=base_lr, weight_decay=weight_decay)
+        optimizers = [muon_optimizer, adamw_optimizer]
+    elif optimizer_name == 'adamw':
+        optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
+        optimizers = [optimizer]
+    else:
+        p.error(f'Unknown optimizer: {optimizer_name}')
     tokens = data['train'][0].to(device)
 
     # 控制训练样本的随机起点。
@@ -63,25 +85,44 @@ def main():
     history = []
     validation_history = []
     intermediate_validation_seconds = 0.
+    best_validation_bpb = float('inf')
+    best_step = None
+    best_checkpoint = args.run_dir/'checkpoint-best.pt'
+
+    def save_best(step):
+        torch.save({'protocol':PROTOCOL,'implementation':args.implementation,'config':config,
+                    'model':{name: value.detach().cpu() for name,value in model.state_dict().items()},
+                    'seed':args.seed,'train_tokens':step*args.batch_size*256},best_checkpoint)
+
     for step in range(args.steps):
         # 每条样本取 257 个 token，用于构造 256 个输入-目标对。
         starts = torch.randint(len(tokens)-257, (args.batch_size,), generator=rng).to(device)
         batch = tokens[starts[:,None]+torch.arange(257,device=device)]
 
         # 前期 warmup，之后使用 cosine 衰减学习率。
-        learning_rate = .001 * min(1.,(step+1)/100) * (.1+.9*.5*(1+math.cos(math.pi*step/args.steps)))
-        for group in optimizer.param_groups:
+        learning_rate = base_lr * min(1.,(step+1)/100) * (.1+.9*.5*(1+math.cos(math.pi*step/args.steps)))
+        adamw_groups = adamw_optimizer.param_groups if optimizer_name == 'muon' else optimizer.param_groups
+        for group in adamw_groups:
             group['lr'] = learning_rate
+        if optimizer_name == 'muon':
+            for group in muon_optimizer.param_groups:
+                group['lr'] = muon_lr * min(1.,(step+1)/100) * (.1+.9*.5*(1+math.cos(math.pi*step/args.steps)))
 
         # 输入和目标错开一位，计算 next-token loss。
-        optimizer.zero_grad(set_to_none=True)
+        for active_optimizer in optimizers:
+            active_optimizer.zero_grad(set_to_none=True)
+        if hasattr(model, 'set_training_step'):
+            model.set_training_step(step+1)
         with autocast(device, precision):
             loss = F.cross_entropy(model(batch[:,:-1]).flatten(0,1).float(),batch[:,1:].flatten())
+            if getattr(model, 'aux_loss', None) is not None:
+                loss = loss + model.aux_loss
 
         # 反向传播并更新一次参数。
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(),1.)
-        optimizer.step()
+        for active_optimizer in optimizers:
+            active_optimizer.step()
         if (step+1)%100 == 0 or step+1 == args.steps:
             row = {'step':step+1,'loss':loss.item(),'seconds':time.perf_counter()-started-intermediate_validation_seconds}
             history.append(row)
@@ -93,6 +134,10 @@ def main():
             intermediate_validation_seconds += intermediate['seconds']
             validation_history.append({'step':step+1,**intermediate})
             print(json.dumps({'validation':validation_history[-1]}),flush=True)
+            if args.save_best and intermediate['bpb'] < best_validation_bpb:
+                best_validation_bpb = intermediate['bpb']
+                best_step = step+1
+                save_best(best_step)
     if device.type == 'cuda':
         torch.cuda.synchronize(device)
     train_seconds = time.perf_counter()-started-intermediate_validation_seconds
@@ -100,6 +145,10 @@ def main():
     # 保存模型前进行最终 validation。
     validation = score(model,*data['validation'],device,'fp32')
     validation.pop('window_nll_nats')
+    if args.save_best and validation['bpb'] < best_validation_bpb:
+        best_validation_bpb = validation['bpb']
+        best_step = args.steps
+        save_best(best_step)
     checkpoint = args.run_dir/'checkpoint.pt'
 
     # 保存评估所需的模型信息和权重。
@@ -118,6 +167,9 @@ def main():
               'torch_version':str(torch.__version__),'threads':args.threads,
               'checkpoint_sha256':sha(checkpoint),'implementation_sha256':implementation_sha,
               **device_metrics(device)}
+    if args.save_best:
+        result.update({'best_checkpoint_step':best_step,'best_validation_bpb':best_validation_bpb,
+                       'best_checkpoint_sha256':sha(best_checkpoint)})
     (args.run_dir/'metrics.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result|{'history':[]},indent=2),flush=True)
 

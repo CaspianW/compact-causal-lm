@@ -1,6 +1,6 @@
 # MP1 code — installation and usage
 
-Read [the project guide](../guide/GUIDE.md) for the assignment, assessment, deadlines and peer review. This README contains the running instructions and technical rules. The package has only these two documents.
+Read [the project guide](../GUIDE.md) for the assignment, assessment, deadlines and peer review. This README contains the running instructions and technical rules. The submission report is [REPORT.md](../REPORT.md).
 
 All commands below run from **code/**. Data and the tokenizer are included. No API key, pretrained weights or additional dataset download is needed; after installing dependencies, training and evaluation work offline.
 
@@ -26,7 +26,7 @@ python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/
 For an NVIDIA GPU with a compatible driver, use this command **instead**:
 
 ```bash
-python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu126
+python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
 ```
 
 For macOS, install `torch==2.7.1` from the default PyPI index and run on CPU. After installing PyTorch, install the remaining dependencies and check the model:
@@ -69,6 +69,22 @@ python evaluate.py --checkpoint runs/my-model/checkpoint.pt --split test
 
 Training writes `checkpoint.pt` and `metrics.json`. Evaluation writes `test_cpu_fp32.json` (or the corresponding device/split name) and per-window losses. Submit the **bpb** value from the complete-test JSON, not token perplexity or validation BPB. Default evaluation is FP32. Add `--device cuda` for GPU runs; training can use BF16, but ranked evaluation must use FP32 and remain reproducible on CPU. The supplied CUDA runner caps PyTorch allocation at 20 GB; driver overhead is additional.
 
+### Reproduce this submission
+
+The selected model is `student.py` with the configuration in `configs/rope_swiglu_w256_d5_attndropout01.json`. From `code/`, train it with:
+
+```bash
+python train.py --implementation student --config configs/rope_swiglu_w256_d5_attndropout01.json --run-dir runs/reproduction --device cuda --precision bf16 --threads 4 --seed 17 --steps 9600 --batch-size 32 --eval-every 2400 --save-best
+```
+
+The published score uses the separately supplied `checkpoint-best.pt` (SHA-256 `4121726b57a6528b2f83197e7fbc36ca46c90bf513413cffcf8b1630b9b08c90`). Place it at `runs/final/checkpoint-best.pt`, or change the path below. No retraining is needed to evaluate it:
+
+```bash
+python evaluate.py --checkpoint runs/final/checkpoint-best.pt --device cpu --precision fp32 --threads 4 --split test
+```
+
+This produced **1.5510079794 test BPB** on 428,405 targets. The matching `student.py` SHA-256 is `ff07948b888b9a3dda01fcc02c8144834a0c58be470b84e4e9bc23779b78bdf5`. The checkpoint is a separate submission artifact and is intentionally excluded from Git; the code revision and checkpoint must both be linked in the final website submission.
+
 ## 3. Files and model interface
 
 | Files | Use |
@@ -100,13 +116,13 @@ Use validation for all development and checkpoint/mixture selection. Weights, st
 
 Measure all three limits for the same frozen predictor:
 
-- **CPU time ≤5× baseline:**
-- **Peak RAM ≤4 GiB:**
-- **Inference assets ≤64 MiB uncompressed:** 
+- **CPU time ≤5× baseline:** submitted model 16.69 s versus baseline 6.82 s on the same four-thread CPU (2.45×).
+- **Peak RAM ≤4 GiB:** observed 1.81 GiB process working set.
+- **Inference assets ≤64 MiB uncompressed:** submitted checkpoint 19.05 MiB.
 
 ## 5. Prepare your submission and reproduce a peer
 
-The [guide](../guide/GUIDE.md) specifies the deadline and website workflow. Include the following in your immutable code repository:
+The [guide](../GUIDE.md) specifies the deadline and website workflow. Include the following in your immutable code repository:
 
 - **Report, at most 10 pages including figures, tables and references** 
 - **Reproduction instructions**
@@ -126,3 +142,7 @@ Compare reproduced BPB with the reported score. Submit **Peer Review Report** wi
 WikiText-2 was introduced by Stephen Merity, Caiming Xiong, James Bradbury and Richard Socher in [Pointer Sentinel Mixture Models](https://arxiv.org/abs/1609.07843). The text is by Wikipedia contributors. The [upstream dataset](https://huggingface.co/datasets/Salesforce/wikitext) identifies [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) and the [GNU Free Documentation License](https://www.gnu.org/licenses/fdl-1.3.html); retain these notices when redistributing the data.
 
 The supplied `wikitext-2-raw-v1` splits preserve revision `b08601e04326c79dfdd32d625aee71d232d685c3`. Rows are joined with newlines and encoded as UTF-8; the tokenizer is fitted only to training text. Dataset hashes are in `data/manifest.json`. These dataset notices do not assign a new license to the surrounding classroom code.
+
+## 7. Assistance and reused work
+
+The model uses RoPE and SwiGLU as covered in the course lectures. The optional `muon.py` experiment adapts the Newton-Schulz update from [Keller Jordan's Muon implementation](https://github.com/KellerJordan/Muon); Muon is not used in the submitted checkpoint. AI assistance was used to implement and debug model variants, organize experiments, and draft documentation. The submitted results were checked with the supplied evaluator and correctness tests.
