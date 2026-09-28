@@ -116,7 +116,7 @@ Use validation for all development and checkpoint/mixture selection. Weights, st
 
 Measure all three limits for the same frozen predictor:
 
-- **CPU time ≤5× baseline:** submitted model 16.69 s versus baseline 6.82 s on the same four-thread CPU (2.45×).
+- **CPU time ≤5× baseline:** submitted model 54.67 s versus baseline 18.94 s in a paired run with the original scorer on the same four-thread CPU (2.89×). Windows background load made absolute timings vary between runs.
 - **Peak RAM ≤4 GiB:** observed 1.81 GiB process working set.
 - **Inference assets ≤64 MiB uncompressed:** submitted checkpoint 19.05 MiB.
 
