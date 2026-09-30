@@ -49,6 +49,8 @@ def main():
     parser.add_argument('--run-dir', type=Path, required=True)
     parser.add_argument('--steps', type=int, default=4800)
     parser.add_argument('--eval-every', type=int, default=1200)
+    parser.add_argument('--snapshot-every', type=int, default=0)
+    parser.add_argument('--snapshot-start', type=int, default=2400)
     args = parser.parse_args()
     if not math.isfinite(args.alpha) or args.alpha < 0:
         parser.error('R-Drop coefficient must be finite and nonnegative.')
@@ -56,6 +58,8 @@ def main():
         parser.error('Learning rate must be finite and positive.')
     if args.steps < 1 or args.eval_every < 1:
         parser.error('Steps and evaluation interval must be positive.')
+    if args.snapshot_every < 0 or args.snapshot_start < 0:
+        parser.error('Snapshot interval and start must be nonnegative.')
     if args.run_dir.exists() and any(args.run_dir.iterdir()):
         parser.error('Use an empty output directory.')
     process_started = time.perf_counter()
@@ -86,6 +90,7 @@ def main():
     metadata = {'protocol': PROTOCOL, 'implementation': IMPLEMENTATION, 'config': config,
                 'variant': config.get('normalization_variant', 'control'),
                 'training_mode': 'warm_restart', 'rdrop_alpha': args.alpha, 'seed': 17,
+                'snapshot_every': args.snapshot_every, 'snapshot_start': args.snapshot_start,
                 'batch_size': 32, 'steps': args.steps, 'completed_steps': 0,
                 'train_tokens': previous_targets + args.steps * 32 * 256,
                 'forward_train_targets': 2 * (previous_targets + args.steps * 32 * 256),
@@ -150,6 +155,12 @@ def main():
         loss.backward()
         gradient_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
         optimizer.step()
+        if (args.snapshot_every and step + 1 >= args.snapshot_start
+                and (step + 1) % args.snapshot_every == 0):
+            saved = time.perf_counter()
+            save_checkpoint(args.run_dir / f'snapshot-{step + 1:05d}.pt', step + 1)
+            torch.cuda.synchronize(device)
+            evaluation_seconds += time.perf_counter() - saved
         if (step + 1) % 100 == 0 or step + 1 == args.steps:
             if not torch.isfinite(loss.detach()) or not torch.isfinite(gradient_norm):
                 raise RuntimeError('Non-finite loss or gradient norm.')
