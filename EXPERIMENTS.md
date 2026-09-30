@@ -1,6 +1,6 @@
 # Later experiments
 
-The current experimental candidate is `batch4/rdrop-0.1`. It scored **1.4964472828 validation BPB** with temperature 1.15; its uncalibrated score was 1.5087592771. These are full-validation CUDA FP32 measurements. This candidate has not received a new test score or CPU resource-budget measurement.
+The current experimental candidate is `batch4/rdrop-0.5`. It scored **1.4911920256 validation BPB** with temperature 1.075; its uncalibrated score was 1.4970513127. These are full-validation CUDA FP32 measurements. This candidate has not received a new test score or CPU resource-budget measurement.
 
 The original coursework submission remains available at [commit d3a7c97](https://github.com/CaspianW/compact-causal-lm/tree/d3a7c97d2f6ba1cbca6a0f8bc68fb076a2041b20). Its matching checkpoint and reported test score are described in the original documentation. README and REPORT still describe that submission. This file records the newer experiments.
 
@@ -11,7 +11,7 @@ The original coursework submission remains available at [commit d3a7c97](https:/
 Use the installation instructions in `code/README.md`. From `code/`, run:
 
 ```bash
-python train_regularization.py --config configs/experimental_best.json --alpha 0.1 --run-dir runs/experimental-reproduction
+python train_regularization.py --config configs/experimental_best.json --alpha 0.5 --run-dir runs/experimental-reproduction
 python evaluate.py --checkpoint runs/experimental-reproduction/checkpoint-calibrated.pt --device cuda --precision fp32 --split validation
 ```
 
