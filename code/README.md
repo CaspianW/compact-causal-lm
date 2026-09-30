@@ -54,7 +54,7 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 ```
 
-Linux CPU commands were verified with Python 3.12 and PyTorch 2.7.1+cpu. Windows/macOS timings have not been measured.
+The supplied Linux CPU commands were verified with Python 3.12 and PyTorch 2.7.1+cpu. This repository also records Windows CPU evaluation and CUDA training measurements in `final_result.json` and REPORT.md. macOS timings have not been measured.
 
 ## 2. Train and evaluate
 
@@ -87,7 +87,7 @@ python evaluate.py --checkpoint runs/my-model/checkpoint.pt --split test
 
 Training writes `checkpoint.pt` and `metrics.json`. Evaluation writes `test_cpu_fp32.json` (or the corresponding device/split name) and per-window losses. Submit the **bpb** value from the complete-test JSON, not token perplexity or validation BPB. Default evaluation is FP32. Add `--device cuda` for GPU runs; training can use BF16, but ranked evaluation must use FP32 and remain reproducible on CPU. The supplied CUDA runner caps PyTorch allocation at 20 GB; driver overhead is additional.
 
-### Reproduce this submission
+### Original submission: historical reproduction
 
 The selected model is `student.py` with the configuration in `configs/rope_swiglu_w256_d5_attndropout01.json`. From `code/`, train it with:
 
@@ -134,9 +134,9 @@ Use validation for all development and checkpoint/mixture selection. Weights, st
 
 Measure all three limits for the same frozen predictor:
 
-- **CPU time ≤5× baseline:** submitted model 54.67 s versus baseline 18.94 s in a paired run with the original scorer on the same four-thread CPU (2.89×). Windows background load made absolute timings vary between runs.
-- **Peak RAM ≤4 GiB:** observed 1.81 GiB process working set.
-- **Inference assets ≤64 MiB uncompressed:** submitted checkpoint 19.05 MiB.
+- **CPU time ≤5× baseline:** final model 22.31 s versus baseline 5.50 s in a paired full-test run on the same four-thread CPU (4.05×). Windows background load can change absolute timings and the ratio.
+- **Peak RAM ≤4 GiB:** final evaluator-process working set 1.82 GiB.
+- **Inference assets ≤64 MiB uncompressed:** final checkpoint 22.07 MiB; the inference code also fits within the total asset limit.
 
 ## 5. Prepare your submission and reproduce a peer
 

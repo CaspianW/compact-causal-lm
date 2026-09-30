@@ -1,8 +1,8 @@
 # Later experiments
 
-The current experimental candidate is `batch8/rdrop-0.5`. It scored **1.4720205239 validation BPB** with temperature 1.1; its uncalibrated score was 1.4816362302. These are full-validation CUDA FP32 measurements. This candidate has not received a new test score or CPU resource-budget measurement.
+The final selected candidate is `batch8/rdrop-0.5`. It scored **1.4720205239 validation BPB** with temperature 1.1; its uncalibrated score was 1.4816362302. These are full-validation CUDA FP32 measurements. After freezing the predictor, complete CPU FP32 test evaluation gave **1.4899984302 BPB**. Its paired CPU scoring-time ratio was 4.05, peak evaluator working set was 1.82 GiB, and checkpoint size was 22.07 MiB. Full measurements are in [`code/final_result.json`](code/final_result.json).
 
-The original coursework submission remains available at [commit d3a7c97](https://github.com/CaspianW/compact-causal-lm/tree/d3a7c97d2f6ba1cbca6a0f8bc68fb076a2041b20). Its matching checkpoint and reported test score are described in the original documentation. README and REPORT still describe that submission. This file records the newer experiments.
+The original coursework submission remains available at [commit d3a7c97](https://github.com/CaspianW/compact-causal-lm/tree/d3a7c97d2f6ba1cbca6a0f8bc68fb076a2041b20), with its original documentation and matching checkpoint. The current REPORT and code README describe the final selected predictor. This file records its experiment history.
 
 ## Code and reproduction
 
@@ -19,10 +19,10 @@ The candidate continues selected seed-17 weights. Each branch starts from the sa
 
 `train_regularization.py` performs two independent dropout forward passes per batch. It averages their cross-entropy losses and adds the selected coefficient times the mean bidirectional KL. Coefficient zero is a paired control with the same two forward passes. It processes 78,643,200 sampled targets and 157,286,400 forward targets per 9,600-update run.
 
-Numeric results, training cost, and source hashes for the current candidate are recorded in [`code/experimental_result.json`](code/experimental_result.json). Checkpoints, optimizer states, virtual environments, and machine-specific logs are excluded from Git. The experimental checkpoint has not replaced the original submission artifact.
+Validation-search results, training cost, and source hashes for the candidate are recorded in [`code/experimental_result.json`](code/experimental_result.json). The frozen predictor's CPU measurements are in [`code/final_result.json`](code/final_result.json). Checkpoints, optimizer states, virtual environments, and machine-specific logs are excluded from Git. The final checkpoint bundle is supplied separately; the original submission artifact remains available for its original code revision.
 
 ## Attribution and limits
 
 Methods follow the [QKNorm paper](https://aclanthology.org/2020.findings-emnlp.379/), [NormFormer paper](https://arxiv.org/abs/2110.09456), [temperature-calibration paper](https://proceedings.mlr.press/v70/guo17a.html), and [R-Drop paper and author implementation](https://github.com/dropreg/R-Drop). The starter data, tokenizer, and evaluator are unchanged. Codex assisted with implementation, validation checks, experiment execution, and documentation, as disclosed in README.
 
-Comparisons cover one seed. Selecting a structure uses validation only. Earlier runs used different training lengths and starting weights, so their score differences cannot isolate architecture or regularization effects. Further improvements published here remain experimental until test evaluation and the CPU limits have been checked for a frozen candidate.
+Comparisons cover one seed. Selecting a structure uses validation only. Earlier runs used different training lengths and starting weights, so their score differences cannot isolate architecture or regularization effects. The matched 9,600-update coefficient-zero ablation is described in REPORT.md. The frozen final candidate has completed test evaluation and CPU resource checks on this machine.
