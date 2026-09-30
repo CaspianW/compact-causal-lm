@@ -1,5 +1,23 @@
 # MP1 code — installation and usage
 
+## Final checkpoint for 30 September 2026
+
+The final checkpoint scores **1.4899984302 full-test CPU FP32 BPB**. Its SHA-256 is `5dda862e738655ccd3406c055a8f8025b8fb5be8b5a4d9c2e5a38f2b45faa4f8`. Use Python 3.12 and the installation instructions below. Download the matching release bundle, extract `checkpoint.pt` to `code/runs/final-submission/`, and evaluate from `code/`:
+
+```bash
+python evaluate.py --checkpoint runs/final-submission/checkpoint.pt --device cpu --precision fp32 --threads 4 --split test
+```
+
+No training is needed to verify this score. To replay the recorded CUDA training recipe instead:
+
+```bash
+python reproduce_final.py --recipe configs/final_training_recipe.json --run-dir runs/reproduced-final
+```
+
+The CPU time ratio is 4.05, peak evaluator working set is 1.82 GiB, and checkpoint size is 22.07 MiB. Full measurements and the recipe are in `final_result.json`; model selection used validation before the final test score was read. Exact weights can vary across training runs and hardware.
+
+The older reproduction section below records the original 1.5510079794-BPB submission. It is retained as historical documentation; use the commands above for the final predictor.
+
 Read [the project guide](../GUIDE.md) for the assignment, assessment, deadlines and peer review. This README contains the running instructions and technical rules. The submission report is [REPORT.md](../REPORT.md).
 
 All commands below run from **code/**. Data and the tokenizer are included. No API key, pretrained weights or additional dataset download is needed; after installing dependencies, training and evaluation work offline.

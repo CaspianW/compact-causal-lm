@@ -1,8 +1,6 @@
-The code includes newer experiments; the documentation below still describes the original submission.
-
 # DASE7506 MP1
 
-The project method and results are documented in [REPORT.md](REPORT.md).
+The final method, score, comparisons and reproduction instructions are in [REPORT.md](REPORT.md) and [code/README.md](code/README.md). This file discloses AI assistance and reused work.
 
 ## AI assistance and reused work
 
@@ -16,3 +14,4 @@ Codex assisted with the following work:
 - Running the supplied correctness tests and evaluator on the selected checkpoint, then checking its full-test BPB, CPU inference time, memory use, and file size.
 - Drafting and revising the repository documentation and `REPORT.md` from the recorded experiments.
 - Implementing and checking the later QKNorm, NormFormer, temperature-calibration, R-Drop, and continued-training experiments.
+- Preparing the final validation selection, matched R-Drop ablation, checkpoint-averaging checks, CPU resource measurements, training-recipe replay, and submission artifacts.
