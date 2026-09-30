@@ -215,4 +215,7 @@ class GPT(nn.Module):
 
 
 def build_model(config):
+    if config.get('normalization_variant', 'control') != 'control' or float(config.get('temperature', 1.)) != 1.:
+        from experimental_models import build_model as build_experimental_model
+        return build_experimental_model(config)
     return GPT(config)
