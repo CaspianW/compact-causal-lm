@@ -1,0 +1,42 @@
+{
+  "config": {
+    "vocab": 2048,
+    "width": 256,
+    "heads": 4,
+    "depth": 6,
+    "context": 256,
+    "ffn": "swiglu",
+    "norm": "layernorm",
+    "position": "rope",
+    "dropout": 0.1,
+    "attention_dropout": 0.1,
+    "normalization_variant": "qknorm"
+  },
+  "seed": 17,
+  "phases": [
+    {
+      "script": "train_capacity.py",
+      "alpha": 0.5,
+      "steps": 9600,
+      "eval_every": 2400
+    },
+    {
+      "script": "train_continuation.py",
+      "alpha": 0.5,
+      "schedule": "cosine-zero",
+      "learning_rate": 0.0002,
+      "steps": 4800,
+      "eval_every": 1200,
+      "snapshot_every": 600,
+      "snapshot_start": 2400
+    },
+    {
+      "script": "train_continuation.py",
+      "alpha": 0.5,
+      "schedule": "cosine-zero",
+      "learning_rate": 0.0001,
+      "steps": 2400,
+      "eval_every": 1200
+    }
+  ]
+}
