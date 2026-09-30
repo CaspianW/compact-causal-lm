@@ -1,6 +1,6 @@
 # Later experiments
 
-The current experimental candidate is `batch4/rdrop-0.5`. It scored **1.4911920256 validation BPB** with temperature 1.075; its uncalibrated score was 1.4970513127. These are full-validation CUDA FP32 measurements. This candidate has not received a new test score or CPU resource-budget measurement.
+The current experimental candidate is `batch5/cosine-zero-1e-4`. It scored **1.4849015012 validation BPB** with temperature 1.1; its uncalibrated score was 1.4913214818. These are full-validation CUDA FP32 measurements. This candidate has not received a new test score or CPU resource-budget measurement.
 
 The original coursework submission remains available at [commit d3a7c97](https://github.com/CaspianW/compact-causal-lm/tree/d3a7c97d2f6ba1cbca6a0f8bc68fb076a2041b20). Its matching checkpoint and reported test score are described in the original documentation. README and REPORT still describe that submission. This file records the newer experiments.
 
@@ -11,11 +11,12 @@ The original coursework submission remains available at [commit d3a7c97](https:/
 Use the installation instructions in `code/README.md`. From `code/`, run:
 
 ```bash
-python train_regularization.py --config configs/experimental_best.json --alpha 0.5 --run-dir runs/experimental-reproduction
+python train_regularization.py --config configs/experimental_best.json --alpha 0.5 --run-dir runs/experimental-ancestor
+python train_continuation.py --checkpoint runs/experimental-ancestor/checkpoint-calibrated.pt --alpha 0.5 --schedule cosine-zero --learning-rate 0.0001 --steps 4800 --eval-every 1200 --run-dir runs/experimental-reproduction
 python evaluate.py --checkpoint runs/experimental-reproduction/checkpoint-calibrated.pt --device cuda --precision fp32 --split validation
 ```
 
-The trainer uses seed 17, batches of 32 sequences, 9,600 updates, CUDA BF16, fused AdamW, learning rate 0.001, weight decay 0.1, 100 warmup steps, and the original cosine schedule ending near 10% of the peak learning rate. It selects the checkpoint using complete CUDA FP32 validation and compares the same 13 predefined temperatures. Runs start from random initialization. Exact weights can differ across training runs and hardware.
+The candidate continues a selected seed-17 checkpoint from batch 4. Each branch starts from the same weights, removes temperature scaling during training, resets AdamW and the dropout random stream, and retains R-Drop coefficient 0.5. It adds 4,800 updates with batches of 32 sequences, CUDA BF16, fused AdamW, weight decay 0.1, initial learning rate 0.0001, and the `cosine-zero` schedule. Complete CUDA FP32 validation runs every 1,200 updates. The selected ancestor contains 78,643,200 sampled targets; this branch processes 39,321,600 additional sampled targets and 78,643,200 additional forward targets. Reported training-loop seconds cover this continuation only. Optimizer state is not restored. It selects weights by raw validation BPB and compares the same 13 predefined temperatures. The commands above first reproduce the ancestor training and then the continuation. Exact weights can differ across training runs and hardware.
 
 `train_regularization.py` performs two independent dropout forward passes per batch. It averages their cross-entropy losses and adds the selected coefficient times the mean bidirectional KL. Coefficient zero is a paired control with the same two forward passes. It processes 78,643,200 sampled targets and 157,286,400 forward targets per 9,600-update run.
 

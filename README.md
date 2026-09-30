@@ -15,4 +15,4 @@ Codex assisted with the following work:
 - Planning and running CPU and CUDA experiments, comparing validation BPB across model, dropout, attention, and optimizer settings, and organizing the saved results.
 - Running the supplied correctness tests and evaluator on the selected checkpoint, then checking its full-test BPB, CPU inference time, memory use, and file size.
 - Drafting and revising the repository documentation and `REPORT.md` from the recorded experiments.
-- Implementing and checking the later QKNorm, NormFormer, temperature-calibration, and R-Drop experiments.
+- Implementing and checking the later QKNorm, NormFormer, temperature-calibration, R-Drop, and continued-training experiments.
