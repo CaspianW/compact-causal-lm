@@ -107,8 +107,10 @@ This produced **1.5510079794 test BPB** on 428,405 targets. The matching `studen
 
 | Files | Use |
 |---|---|
-| `model.py`, `configs/baseline.json` | Runnable baseline; preserve for comparisons. |
-| `student.py`, `train.py` | Your model factory and training recipe; add supporting code as needed. |
+| `model.py`, `configs/baseline.json` | Runnable baseline for comparisons. |
+| `student.py`, `experimental_models.py` | Final predictor and its QKNorm implementation. |
+| `train.py` | Baseline or student training entry point using AdamW. |
+| `train_capacity.py`, `train_continuation.py`, `reproduce_final.py` | Final CUDA training phases and recipe replay. |
 | `common.py`, `evaluate.py` | Fixed data checks, windows and scorer; keep unchanged. |
 | `data/` | Supplied splits, tokenizer and dataset hashes; keep unchanged. |
 | `tests/test_contract.py` | Checks your model's causality, normalization, independence and gradients. |
@@ -163,6 +165,6 @@ The supplied `wikitext-2-raw-v1` splits preserve revision `b08601e04326c79dfdd32
 
 ## 7. Reused work and AI assistance
 
-The course starter provided the baseline model, data, tokenizer, loader, scorer, and contract tests. These fixed files remain unchanged. The submitted model lives in `student.py`, while `train.py` contains the added configuration and validation-checkpoint options. `course_models.py` holds exploratory architecture tests. RoPE, SwiGLU, and the other screened architecture ideas were covered in the course lectures. The optional `muon.py` experiment adapts the Newton-Schulz update from [Keller Jordan's Muon implementation](https://github.com/KellerJordan/Muon); the submitted checkpoint uses AdamW.
+The course starter provided the baseline model, data, tokenizer, loader, scorer, and contract tests. These fixed files remain unchanged. The submitted model lives in `student.py`, while `train.py` contains the added configuration and validation-checkpoint options. RoPE, SwiGLU, QKNorm and R-Drop are implemented in the submitted model and final training scripts. An optional Muon experiment was evaluated during development using a compact adaptation of the Newton-Schulz update from [Keller Jordan's Muon implementation](https://github.com/KellerJordan/Muon); it is not part of the submitted implementation, which uses AdamW.
 
 Codex assisted with implementing and debugging model variants and training options, setting up and comparing CPU and GPU experiments, checking the final score and resource use, and drafting the README and report. The final checkpoint was chosen by validation BPB and evaluated with the supplied scorer. The same disclosure appears in the [repository README](../README.md).

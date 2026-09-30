@@ -7,7 +7,7 @@ import subprocess
 import sys
 
 CODE_ROOT = Path(__file__).resolve().parent
-SCRIPTS = {'train_capacity.py', 'train_continuation.py', 'average_checkpoints.py'}
+SCRIPTS = {'train_capacity.py', 'train_continuation.py'}
 
 
 def main():
@@ -42,9 +42,7 @@ def main():
                             '--snapshot-every', str(phase.get('snapshot_every', 0)),
                             '--snapshot-start', str(phase.get('snapshot_start', 2400))])
         else:
-            if previous is None:
-                parser.error('Weight averaging requires a preceding training trajectory.')
-            command.extend(['--source-run-dir', str(previous), '--count', str(phase['count'])])
+            parser.error('Unknown final training phase.')
         subprocess.run(command, cwd=CODE_ROOT, check=True)
         previous = output
     if previous is None:

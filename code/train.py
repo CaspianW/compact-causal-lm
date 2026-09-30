@@ -8,7 +8,6 @@ import torch  # 训练张量、随机采样和优化器
 from torch.nn import functional as F  # 交叉熵损失
 from common import PROTOCOL, ROOT, autocast, device_metrics, load_data, make_model, setup, sha  # 公共工具
 from evaluate import score  # 训练过程中计算 validation 分数
-from muon import Muon
 
 
 def main():
@@ -59,21 +58,10 @@ def main():
     base_lr = float(config.get('learning_rate', .001))
     weight_decay = float(config.get('weight_decay', .1))
     optimizer_name = config.get('optimizer', 'adamw')
-    if optimizer_name == 'muon':
-        embedding_ids = {id(model.token.weight)}
-        matrix_params = [p for p in model.parameters() if p.ndim >= 2 and id(p) not in embedding_ids]
-        matrix_ids = {id(p) for p in matrix_params}
-        adamw_params = [p for p in model.parameters() if id(p) not in matrix_ids]
-        muon_lr = float(config.get('muon_lr', .02))
-        muon_optimizer = Muon(matrix_params, lr=muon_lr,
-                              weight_decay=float(config.get('muon_weight_decay', .01)))
-        adamw_optimizer = torch.optim.AdamW(adamw_params, lr=base_lr, weight_decay=weight_decay)
-        optimizers = [muon_optimizer, adamw_optimizer]
-    elif optimizer_name == 'adamw':
-        optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
-        optimizers = [optimizer]
-    else:
-        p.error(f'Unknown optimizer: {optimizer_name}')
+    if optimizer_name != 'adamw':
+        p.error('The submitted training entry point supports AdamW only.')
+    optimizer = torch.optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
+    optimizers = [optimizer]
     tokens = data['train'][0].to(device)
 
     # 控制训练样本的随机起点。
@@ -101,12 +89,8 @@ def main():
 
         # 前期 warmup，之后使用 cosine 衰减学习率。
         learning_rate = base_lr * min(1.,(step+1)/100) * (.1+.9*.5*(1+math.cos(math.pi*step/args.steps)))
-        adamw_groups = adamw_optimizer.param_groups if optimizer_name == 'muon' else optimizer.param_groups
-        for group in adamw_groups:
+        for group in optimizer.param_groups:
             group['lr'] = learning_rate
-        if optimizer_name == 'muon':
-            for group in muon_optimizer.param_groups:
-                group['lr'] = muon_lr * min(1.,(step+1)/100) * (.1+.9*.5*(1+math.cos(math.pi*step/args.steps)))
 
         # 输入和目标错开一位，计算 next-token loss。
         for active_optimizer in optimizers:
