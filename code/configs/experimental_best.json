@@ -2,7 +2,7 @@
   "vocab": 2048,
   "width": 256,
   "heads": 4,
-  "depth": 5,
+  "depth": 6,
   "context": 256,
   "ffn": "swiglu",
   "norm": "layernorm",
